@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: double-agent-server
+    env: node
+    plan: free
+    root: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        sync: false
+
+staticSites:
+  - name: double-agent-client
+    plan: free
+    root: client
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: double-agent-server
+          property: url
