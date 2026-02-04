@@ -18,7 +18,4 @@ staticSites:
     publishDir: dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: double-agent-server
-          property: url
+        value: https://double-agent-server.onrender.com # Update this in Render Dashboard after server deploy
