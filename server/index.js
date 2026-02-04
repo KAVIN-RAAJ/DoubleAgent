@@ -240,19 +240,81 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        // Handle disconnect logic (assign new host, mark disconnected)
-        // ... simplistic for now
-        // Find game
         Object.values(games).forEach(game => {
             if (game.players[socket.id]) {
-                game.players[socket.id].connected = false;
+                const player = game.players[socket.id];
+                player.connected = false;
+
+                if (game.state !== STATES.LOBBY && game.state !== STATES.GAME_OVER) {
+                    addSystemMessage(game, `🔴 ${player.name} disconnected`);
+                    const activePlayers = getActivePlayers(game);
+
+                    // 1. Not enough players
+                    if (activePlayers.length < 3) {
+                        game.state = STATES.GAME_OVER;
+                        game.roundResult = { winner: 'Aborted', reason: 'Not enough players (someone left)' };
+                        addSystemMessage(game, `Game ended: Not enough players left.`);
+                        if (game.timer.id) clearTimeout(game.timer.id);
+                    }
+                    // 2. Imposter left
+                    else if (player.isImposter) {
+                        game.state = STATES.GAME_OVER;
+                        game.roundResult = { winner: 'Citizens', reason: 'Imposter disconnected!' };
+                        addSystemMessage(game, `🎉 Imposter fled! Citizens Win!`);
+                        if (game.timer.id) clearTimeout(game.timer.id);
+                    }
+                    // 3. Skip Turn if it was their turn
+                    else if (game.state === STATES.MESSAGING) {
+                        const currentPlayerId = game.turnOrder[game.currentTurnIndex];
+                        if (currentPlayerId === socket.id) {
+                            addSystemMessage(game, `Skipping turn (player left)...`);
+                            // Advance immediately
+                            game.currentTurnIndex++;
+                            if (game.currentTurnIndex >= game.turnOrder.length) {
+                                nextPhase(game);
+                            } else {
+                                // Find next VALID player
+                                let nextId = game.turnOrder[game.currentTurnIndex];
+                                // While next player is also disconnected (edge case)
+                                while (nextId && (!game.players[nextId] || !game.players[nextId].connected)) {
+                                    game.currentTurnIndex++;
+                                    if (game.currentTurnIndex >= game.turnOrder.length) {
+                                        nextPhase(game);
+                                        nextId = null;
+                                        break;
+                                    }
+                                    nextId = game.turnOrder[game.currentTurnIndex];
+                                }
+
+                                if (nextId && game.state === STATES.MESSAGING) {
+                                    const nextName = game.players[nextId].name;
+                                    addSystemMessage(game, `🗣️ It is now ${nextName}'s turn to speak`);
+                                }
+                            }
+                            setupPhaseTimer(game);
+                        }
+                    }
+                    // 4. Voting check
+                    else if (game.state === STATES.VOTING) {
+                        const voters = Object.keys(game.votes).length;
+                        if (voters >= activePlayers.length) {
+                            nextPhase(game);
+                            setupPhaseTimer(game);
+                        }
+                    }
+                } else {
+                    // Lobby disconnect
+                    // Optionally remove them entirely or just mark disconnected
+                }
+
+                // Host Migration
                 if (game.hostId === socket.id) {
-                    // Reassign host
                     const remaining = Object.values(game.players).find(p => p.connected);
                     if (remaining) {
                         game.hostId = remaining.id;
+                        addSystemMessage(game, `👑 ${remaining.name} is now the host`);
                     } else {
-                        delete games[game.roomCode]; // Delete if empty
+                        delete games[game.roomCode];
                         return;
                     }
                 }

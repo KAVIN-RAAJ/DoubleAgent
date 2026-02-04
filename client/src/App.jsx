@@ -4,6 +4,8 @@ import Home from './components/Home';
 import Lobby from './components/Lobby';
 import Game from './components/Game';
 
+import Settings from './components/Settings';
+
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function App() {
@@ -37,6 +39,16 @@ function App() {
         return () => newSocket.close();
     }, []);
 
+    const handleLeaveGame = () => {
+        if (socket) {
+            socket.emit('leave_game'); // Server should handle this, or just disconnect
+        }
+        setGameState(null);
+        setPrivateData(null);
+        // Optional: Force reload to ensure clean state
+        window.location.reload();
+    };
+
     if (!socket) return <div className="app-container">Loading...</div>;
 
     // Render Logic
@@ -49,7 +61,14 @@ function App() {
         content = <Game gameState={gameState} privateData={privateData} socket={socket} myId={myId} />;
     }
 
-    return <div className="app-container">{content}</div>;
+    return (
+        <div className="app-container">
+            {gameState && (
+                <Settings roomCode={gameState.roomCode} onLeave={handleLeaveGame} />
+            )}
+            {content}
+        </div>
+    );
 }
 
 export default App;

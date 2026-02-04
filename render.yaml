@@ -1,7 +1,7 @@
-services:
   - type: web
     name: double-agent-server
     env: node
+    plan: free # Force Free Tier
     rootDir: server
     buildCommand: npm install
     startCommand: node index.js
@@ -12,6 +12,7 @@ services:
   - type: web
     name: double-agent-client
     env: static
+    plan: free # Force Free Tier
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
