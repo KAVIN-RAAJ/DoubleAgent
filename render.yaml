@@ -10,12 +10,13 @@ services:
       - key: PORT
         sync: false
 
-staticSites:
-  - name: double-agent-client
+  - type: web
+    name: double-agent-client
+    env: static
     plan: free
     root: client
     buildCommand: npm install && npm run build
-    publishDir: dist
+    staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://double-agent-server.onrender.com # Update this in Render Dashboard after server deploy
+        value: https://double-agent-server.onrender.com
