@@ -1,9 +1,9 @@
-services:
+ for services:
   - type: web
     name: double-agent-server
     env: node
     plan: free
-    root: server
+    rootDir: server
     buildCommand: npm install
     startCommand: node index.js
     envVars:
@@ -14,7 +14,7 @@ services:
     name: double-agent-client
     env: static
     plan: free
-    root: client
+    rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
